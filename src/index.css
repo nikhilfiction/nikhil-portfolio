@@ -1,0 +1,163 @@
+@import "tailwindcss";
+
+/* "desk" = a real mouse on a wide screen. Below it, the hero stacks and uses taps. */
+@custom-variant desk (@media (min-width: 900px) and (hover: hover) and (pointer: fine));
+
+@theme {
+  --color-paper: #ffffff;
+  --color-blush: #f9ecee;
+  --color-rose: #e5bcc4;
+  --color-rose-deep: #c88a97;
+  --color-maroon: #7b2d44;
+  --color-ink: #2a1b21;
+  --color-ink-soft: #6e5560;
+  --color-line: #ecd3d8;
+
+  --font-display: "Bodoni Moda", "Bodoni 72", Didot, "Times New Roman", serif;
+  --font-body: "Manrope", "Segoe UI", system-ui, -apple-system, sans-serif;
+
+  --animate-drift: drift 3.2s ease-in-out infinite;
+  --animate-fall: fall 2s ease-in-out infinite;
+  --animate-pop: pop 0.28s ease both;
+
+  @keyframes drift {
+    0%, 100% { transform: translateX(-4px); }
+    30% { transform: translateX(5px); }
+    60% { transform: translateX(0) translateY(-2px); }
+  }
+  @keyframes fall {
+    0% { transform: scaleY(0.2); opacity: 0.3; }
+    50% { transform: scaleY(1); opacity: 1; }
+    100% { transform: scaleY(1) translateY(10px); opacity: 0; }
+  }
+  @keyframes pop {
+    from { opacity: 0; transform: translateY(8px) scale(0.97); }
+    to { opacity: 1; transform: none; }
+  }
+}
+
+/* Side gutter that also clears a phone's system bars */
+@utility px-safe {
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+:root {
+  --side: clamp(200px, 22vw, 360px);
+  --stage-h: clamp(340px, calc(100svh - 150px), 720px);
+  color-scheme: light;
+}
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  overflow-x: hidden;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+:focus-visible { outline: 2px solid var(--color-maroon); outline-offset: 4px; border-radius: 6px; }
+section[id] { scroll-margin-top: 64px; }
+
+/* ---------- Pieces that are clearer as plain CSS than as utilities ---------- */
+@layer components {
+  .nav-pad {
+    padding-top: calc(16px + env(safe-area-inset-top, 0px));
+    padding-bottom: 16px;
+    padding-left: max(24px, env(safe-area-inset-left, 0px));
+    padding-right: max(24px, env(safe-area-inset-right, 0px));
+  }
+  .nav-pad.is-solid {
+    padding-top: calc(10px + env(safe-area-inset-top, 0px));
+    padding-bottom: 10px;
+  }
+
+  /* White glow behind the character, dusty rose at the edges */
+  .hero-glow {
+    background:
+      radial-gradient(ellipse 30% 44% at 50% 55%, var(--color-paper) 0%, var(--color-paper) 50%, rgb(255 255 255 / 0) 100%),
+      radial-gradient(ellipse 115% 100% at 50% 52%, var(--color-paper) 20%, var(--color-blush) 50%, var(--color-rose) 82%, var(--color-rose-deep) 118%);
+  }
+
+  .stage-wrap {
+    position: relative; /* no z-index: it would trap the canvas blend and show a white box */
+    width: min(100%, 560px);
+    aspect-ratio: 840 / 720;
+  }
+  @media (min-width: 900px) and (hover: hover) and (pointer: fine) {
+    .stage-wrap { width: min(100%, calc(var(--stage-h) * 1.1667), calc(100vw - 2 * var(--side))); }
+  }
+
+  /* Frames have a white background; multiply makes it vanish into the glow */
+  .char-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    mix-blend-mode: multiply;
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 13%, #000 87%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0%, #000 13%, #000 87%, transparent 100%);
+    opacity: 0;
+    transition: opacity 0.7s ease;
+  }
+  .char-canvas.is-ready { opacity: 1; }
+
+  .reply {
+    position: absolute;
+    z-index: 2;
+    right: 2%;
+    top: 6%;
+    margin: 0;
+    width: max-content;
+    max-width: 15ch;
+    padding: 12px 18px;
+    border: 1px solid var(--color-line);
+    border-radius: 18px 18px 4px 18px;
+    background: var(--color-paper);
+    box-shadow: 0 14px 34px -18px var(--color-rose-deep);
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 1rem;
+    line-height: 1.3;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.28s ease;
+  }
+  .reply.is-on { opacity: 1; animation: var(--animate-pop); }
+  @media (min-width: 900px) and (hover: hover) and (pointer: fine) {
+    .reply {
+      right: auto;
+      left: 93%;
+      top: 34%;
+      max-width: min(22ch, calc(var(--side) - 24px));
+      border-radius: 18px 18px 18px 4px;
+      font-size: 1.12rem;
+    }
+  }
+
+  /* Aftershock ripple diagram */
+  .quake .edge { stroke: var(--color-rose); stroke-width: 1.5; }
+  .quake .edge.hit { stroke: var(--color-rose-deep); }
+  .quake .node { fill: var(--color-paper); stroke: var(--color-rose); stroke-width: 1.5; }
+  .quake .node.hit { fill: var(--color-blush); stroke: var(--color-maroon); }
+  .quake .core { fill: var(--color-maroon); }
+  .quake .ring { fill: none; stroke: var(--color-maroon); stroke-width: 1.2; transform-box: fill-box; transform-origin: center; opacity: 0; animation: ripple 3.6s ease-out infinite; }
+  .quake .ring:nth-of-type(2) { animation-delay: 1.2s; }
+  .quake .ring:nth-of-type(3) { animation-delay: 2.4s; }
+  .quake text { font-family: var(--font-body); font-size: 11px; fill: var(--color-ink-soft); }
+
+  .dot-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+  .dot-list li { position: relative; padding-left: 18px; }
+  .dot-list li::before { content: ""; position: absolute; left: 0; top: 0.62em; width: 6px; height: 6px; border-radius: 50%; background: var(--color-rose-deep); }
+}
+
+@keyframes ripple {
+  0% { transform: scale(0.2); opacity: 0.55; }
+  100% { transform: scale(1); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .quake .ring { opacity: 0.25; transform: scale(0.7); }
+}
